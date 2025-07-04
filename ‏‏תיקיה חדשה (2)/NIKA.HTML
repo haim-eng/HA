@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>המדריך השלם לבניית ציפורניים באקריל</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #D90368;
+            --secondary-color: #8338EC;
+            --text-color: #333;
+            --bg-color: #F9F9F9;
+            --header-font: 'Assistant', sans-serif;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Assistant', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .main-content h1, .main-content h2, .main-content h3 {
+            font-family: var(--header-font);
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .main-content h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .sidebar nav a {
+            transition: all 0.2s ease-in-out;
+            border-right: 3px solid transparent;
+        }
+        .sidebar nav a.active {
+            background-color: #FCE4EC;
+            color: var(--primary-color);
+            border-right-color: var(--primary-color);
+            font-weight: 600;
+        }
+        .fact-box, .gemini-feature-box {
+            background-color: #E3F2FD;
+            border-right: 4px solid #2196F3;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background-color: #FFF3E0;
+            border-right: 4px solid #FF9800;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .mobile-nav-toggle, .chat-fab {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(100%);
+                transition: transform 0.3s ease-in-out;
+                z-index: 40;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .mobile-nav-toggle {
+                display: block;
+            }
+        }
+        .chat-fab {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 50;
+            display: block;
+        }
+        .chat-modal {
+            display: none;
+            position: fixed;
+            z-index: 60;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .chat-modal.open {
+            display: flex;
+        }
+        .chat-message {
+            max-width: 80%;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .chat-message.user {
+            background-color: var(--secondary-color);
+            color: white;
+            align-self: flex-start;
+        }
+        .chat-message.bot {
+            background-color: #E9E9EB;
+            color: #333;
+            align-self: flex-end;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Mobile Nav Toggle Button -->
+    <button id="mobileNavToggle" class="mobile-nav-toggle fixed top-4 right-4 z-50 bg-white p-2 rounded-full shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+    
+    <!-- Chat FAB -->
+    <button id="chatFab" class="chat-fab bg-[var(--secondary-color)] text-white p-4 rounded-full shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+    </button>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="chat-modal items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3 h-3/4 flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center bg-[var(--primary-color)] text-white rounded-t-lg">
+                <h3 class="text-xl font-bold">✨ שאלי את המומחית</h3>
+                <button id="closeChat" class="text-2xl">&times;</button>
+            </div>
+            <div id="chatHistory" class="flex-1 p-4 overflow-y-auto flex flex-col-reverse">
+                <!-- Chat messages will be appended here -->
+            </div>
+            <div class="p-4 border-t">
+                <div class="flex space-x-2 rtl:space-x-reverse">
+                    <input type="text" id="chatInput" class="flex-1 border rounded-full px-4 py-2" placeholder="כתבי את שאלתך כאן...">
+                    <button id="sendChat" class="bg-[var(--secondary-color)] text-white px-4 py-2 rounded-full font-semibold">שלח</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar fixed top-0 right-0 h-screen w-64 bg-white shadow-lg p-4 overflow-y-auto md:translate-x-0">
+            <h2 class="text-xl font-bold mb-4 text-center text-[var(--primary-color)]">תוכן עניינים</h2>
+            <nav class="space-y-2">
+                <a href="#introduction" class="block p-2 rounded-md">הקדמה</a>
+                <a href="#chapter1" class="block p-2 rounded-md">פרק 1: כימיה</a>
+                <a href="#chapter2" class="block p-2 rounded-md">פרק 2: אדריכלות הציפורן</a>
+                <a href="#chapter3" class="block p-2 rounded-md">פרק 3: יתרונות וחסרונות</a>
+                <a href="#chapter4" class="block p-2 rounded-md">פרק 4: השוואת שיטות</a>
+                <a href="#chapter5" class="block p-2 rounded-md">פרק 5: מחזור החיים</a>
+                <a href="#chapter6" class="block p-2 rounded-md">פרק 6: בחירה בטוחה</a>
+                <a href="#chapter7" class="block p-2 rounded-md">פרק 7: גוף ונפש</a>
+                <a href="#chapter8" class="block p-2 rounded-md">פרק 8: מיתוסים</a>
+                <a href="#chapter9" class="block p-2 rounded-md">פרק 9: העתיד</a>
+                <a href="#chapter10" class="block p-2 rounded-md">פרק 10: סטודיו לעיצוב</a>
+                <a href="#glossary" class="block p-2 rounded-md">נספח: מילון מונחים</a>
+                <a href="#conclusion" class="block p-2 rounded-md">סיכום</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="mainContent" class="main-content w-full md:mr-64 p-8 md:p-12">
+            <header class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-2">המדריך השלם לבניית ציפורניים באקריל</h1>
+                <p class="text-xl text-gray-600">מדע, אומנות ובטיחות בקצות האצבעות</p>
+            </header>
+
+            <section id="introduction">
+                <h2 class="text-3xl">✨ הקדמה: מדוע הספר הזה נכתב ועבור מי?</h2>
+                <p class="text-lg leading-relaxed">עולם טיפוח הציפורניים הפך בשנים האחרונות ממותרות לנורמה. אך בתוך ים של מידע, שמועות, חומרים לא מוכרים ומגוון סגנונות – קשה לדעת מה נכון, מה בריא, ומה עלול להזיק. מטרת הספר הזה היא לפזר את הערפל. הוא מיועד לשני קהלים עיקריים:</p>
+                <ul class="list-disc list-inside my-4 space-y-2 text-lg">
+                    <li><strong>ללקוחה החכמה</strong> – זו שרוצה להבין את התהליך שהיא עוברת, לדעת לשאול שאלות, לזהות חומרים מסוכנים ולבחור מניקוריסטית שאפשר לסמוך עליה.</li>
+                    <li><strong>למניקוריסטית המתחילה (או המנוסה)</strong> – זו השואפת לשירות ברמה הגבוהה ביותר, על בסיס ידע כימי, טכניקות מדויקות, היגיינה מוקפדת וחווית לקוחה מושלמת.</li>
+                </ul>
+                <p class="text-lg leading-relaxed">הספר משלב מדע, אומנות, ניסיון מהשטח ועובדות מרתקות. הוא נועד להיות גם מדריך לימודי וגם מקור השראה.</p>
+            </section>
+            
+            <div id="content-container" style="display: none;">
+                <!-- All text content will be placed here by JS for the chatbot context -->
+            </div>
+
+            <section id="chapter1">
+                <h2 class="text-3xl">🔬 פרק 1: כימיה בקצות האצבעות – המדע שמאחורי האקריל</h2>
+                <h3 class="text-2xl mt-6 mb-4">מה זה בעצם אקריל?</h3>
+                <p class="text-lg leading-relaxed">בניית ציפורניים באקריל מבוססת על תגובה כימית בין שני חומרים:</p>
+                <ul class="list-disc list-inside my-4 space-y-2 text-lg">
+                    <li><strong>מונומר</strong> – נוזל המכיל מולקולות קטנות (לרוב אתיל מתאקרילט – EMA).</li>
+                    <li><strong>פולימר</strong> – אבקה המכילה שרשראות של מולקולות ארוכות.</li>
+                </ul>
+                <p class="text-lg leading-relaxed">כאשר המונומר בא במגע עם הפולימר, מתרחשת תגובת <strong>פולימריזציה</strong> – מולקולות המונומר יוצרות קשרים עם מולקולות הפולימר ומתגבשות לחומר מוצק, פלסטי ועמיד.</p>
+                <div class="warning-box">
+                    <h4 class="font-bold text-xl mb-2">⚠️ סכנת ה-MMA</h4>
+                    <p>קיים חומר בשם MMA (מתיל מתאקרילט) שהוא זול, אך מסוכן מאוד לשימוש בציפורניים: יוצר קשר קשיח מדי עם הציפורן, אינו נמס באצטון וגורם נפוץ לאלרגיות.</p>
+                </div>
+                <div class="fact-box">
+                    <p>💡 <strong>עובדה מעניינת:</strong> ב-1974 הוציא ה-FDA (מינהל התרופות האמריקאי) אזהרה רשמית נגד שימוש ב-MMA לצרכים קוסמטיים.</p>
+                </div>
+            </section>
+
+            <section id="chapter2">
+                <h2 class="text-3xl">🏗️ פרק 2: אדריכלות הציפורן – טכניקות יישום מקצועיות</h2>
+                <p class="text-lg leading-relaxed">כמו בניין – גם לציפורן אקריל יש שלד, תשתית וקשת תומכת. בנייה מקצועית מחייבת דיוק, ניקיון והבנה מבנית. התהליך כולל מספר שלבים קריטיים:</p>
+                <ol class="list-decimal list-inside my-4 space-y-2 text-lg">
+                    <li><strong>הכנת הציפורן:</strong> חיטוי, דחיפת קוטיקולה, שיוף עדין ומריחת פריימר.</li>
+                    <li><strong>הארכה (אופציונלי):</strong> שימוש בטיפסים (תוספות פלסטיק) או בתבניות (מדבקות פיסול).</li>
+                    <li><strong>בנייה ויצירת אפקס:</strong> הנחת "כדורי" אקריל בנקודות אסטרטגיות ליצירת קשת חוזק (אפקס). אפקס נכון מבטיח עמידות ומונע שברים.</li>
+                    <li><strong>שיוף וגימור:</strong> עיצוב הצורה הסופית באמצעות פצירה או מכונת שיוף, והחלקה לקראת גימור.</li>
+                    <li><strong>טופ קואט:</strong> מריחת שכבה עליונה להברקה והגנה.</li>
+                </ol>
+            </section>
+
+            <section id="chapter3">
+                <h2 class="text-3xl">⚖️ פרק 3: שקלול תועלות וסיכונים</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-2xl mb-4 text-green-600">✅ יתרונות בולטים</h3>
+                        <ul class="list-disc list-inside space-y-2 text-lg">
+                            <li><strong>חוזק יוצא דופן:</strong> אידיאלי לציפורניים חלשות או כסוסות.</li>
+                            <li><strong>עמידות ארוכת טווח:</strong> מחזיק 2-4 שבועות.</li>
+                            <li><strong>עיצוב גמיש:</strong> מאפשר כל צורה, אורך וקישוט.</li>
+                            <li><strong>תחזוקה פשוטה:</strong> ניתן למלא במקום להסיר לחלוטין.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl mb-4 text-red-600">❌ חסרונות שחשוב להכיר</h3>
+                        <ul class="list-disc list-inside space-y-2 text-lg">
+                            <li><strong>ריח כימי חזק:</strong> דורש סביבת עבודה מאווררת.</li>
+                            <li><strong>סיכון לזיהום:</strong> במקרה של התרוממות החומר (lifting).</li>
+                            <li><strong>נזק בהסרה לא נכונה:</strong> עלול לפגוע קשות בציפורן הטבעית.</li>
+                            <li><strong>דורש תחזוקה:</strong> הזנחה עלולה לגרום לשברים.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="chapter4">
+                <h2 class="text-3xl">🌍 פרק 4: אקריל מול העולם – השוואה לשיטות אחרות</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>קריטריון</th>
+                            <th>אקריל</th>
+                            <th>ג'ל בנייה</th>
+                            <th>שיטת טבילה (Dip)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>חוזק</td><td>💪 חזק מאוד</td><td>💪 גמיש ועמיד</td><td>💪 בינוני-גבוה</td></tr>
+                        <tr><td>גמישות</td><td>❌ נמוכה</td><td>✅ גבוהה</td><td>❌ נמוכה</td></tr>
+                        <tr><td>ריח</td><td>👃 חזק</td><td>✅ ללא ריח</td><td>✅ ללא ריח</td></tr>
+                        <tr><td>הסרה</td><td>✅ בהשריה</td><td>❌ שיוף בלבד</td><td>✅ בהשריה</td></tr>
+                        <tr><td>תחושה טבעית</td><td>בינונית</td><td>גבוהה מאוד</td><td>בינונית</td></tr>
+                        <tr><td>עלות ממוצעת</td><td>בינונית</td><td>גבוהה</td><td>בינונית-נמוכה</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="chapter5">
+                <h2 class="text-3xl">♻️ פרק 5: מחזור החיים המלא – תחזוקה, הסרה ושיקום</h2>
+                <h3 class="text-2xl mt-6 mb-4">מילוי, הסרה ושיקום</h3>
+                <p class="text-lg leading-relaxed"><strong>מילוי:</strong> מבוצע כל 2-4 שבועות, וכולל שיוף, איזון מבני ומילוי אזור הצמיחה. <strong>הסרה נכונה:</strong> מתבצעת על ידי שיוף השכבה העליונה, השריה באצטון כ-20 דקות והסרה עדינה של החומר המומס. <strong>שיקום:</strong> לאחר ההסרה, מומלץ להשתמש בשמן קוטיקולה, מחזקי ציפורניים ולקחת הפסקה קצרה לפני הבנייה הבאה.</p>
+                <div class="warning-box">
+                    <p>❗ <strong>כלל ברזל:</strong> לעולם אין לתלוש, לקלף או "לעזור" לחומר לרדת בכוח! פעולה זו תולשת שכבות מהציפורן הטבעית וגורמת לנזק חמור.</p>
+                </div>
+            </section>
+
+            <section id="chapter6">
+                <h2 class="text-3xl">🔍 פרק 6: איך לבחור מניקוריסטית ומכון</h2>
+                 <table>
+                    <thead>
+                        <tr>
+                            <th>קריטריון</th>
+                            <th>למה זה חשוב</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>תעודות והכשרה</td><td>מוכיחה רצינות ומקצועיות.</td></tr>
+                        <tr><td>ניקיון והיגיינה</td><td>הגנה מזיהומים. חשוב שהכלים יעברו סטריליזציה.</td></tr>
+                        <tr><td>אוורור בחדר</td><td>ריח מונומר עלול להזיק בשאיפה ממושכת.</td></tr>
+                        <tr><td>שקיפות בחומרים</td><td>ה-EMA חייב להיות מזוהה וברור.</td></tr>
+                        <tr><td>יחס אישי</td><td>התאמת העיצוב לאורח החיים שלך.</td></tr>
+                        <tr><td>מחיר הוגן</td><td>מחיר נמוך מדי = לרוב חומרים זולים או חוסר ניסיון.</td></tr>
+                    </tbody>
+                </table>
+                 <div class="fact-box">
+                    <p>💡 <strong>עובדה מעניינת:</strong> לקוחה ממוצעת חוזרת לאותה מניקוריסטית יותר מ־20 פעמים בשנה. זה קשר של אמון לטווח ארוך.</p>
+                </div>
+            </section>
+            
+            <section id="chapter7">
+                <h2 class="text-3xl">💅 פרק 7: גוף ונפש – ההשפעה הפסיכולוגית</h2>
+                <p class="text-lg leading-relaxed">בניית ציפורניים אינה רק פעולה אסתטית. מדובר בפעולה רגשית-חברתית שמספקת תחושת שליטה, העצמה וביטוי עצמי. עיצוב הציפורניים הפך לאמצעי לביטוי אישי, וטיפוחן מגביר את תחושת המסוגלות והדימוי העצמי.</p>
+                <div class="fact-box">
+                    <p>💡 <strong>עובדה מעניינת:</strong> מחקר באוניברסיטת סטנפורד הראה שנשים שהשקיעו בטיפוח עצמי קטן, כמו מריחת לק, דיווחו על עלייה של 17% בביטחון העצמי.</p>
+                </div>
+            </section>
+
+            <section id="chapter8">
+                <h2 class="text-3xl">🤔 פרק 8: מיתוסים נפוצים – עובדות מול פיקציות</h2>
+                <table>
+                    <thead>
+                        <tr><th>❌ המיתוס</th><th>✅ המציאות</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>"אקריל עוצר את צמיחת הציפורן"</td><td>הציפורן גדלה כל הזמן מתחת לחומר.</td></tr>
+                        <tr><td>"האקריל תמיד הורס את הציפורן"</td><td>נזק נגרם רק משיוף אגרסיבי או הסרה לא נכונה.</td></tr>
+                        <tr><td>"אם זה זול – זה אותו דבר"</td><td>חומרים זולים = סיכון גבוה ל-MMA מסוכן.</td></tr>
+                        <tr><td>"חייבים להפסיק כל כמה חודשים"</td><td>לא הכרחי אם התחזוקה וההסרה נעשות נכון.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="chapter9">
+                <h2 class="text-3xl">🤖 פרק 9: הצצה לעתיד – החדשנות בעולם הציפורניים</h2>
+                <p class="text-lg leading-relaxed">תחום הציפורניים אינו סטטי. טכנולוגיה, מדע ועיצוב דוחפים את הגבולות כל הזמן. בין החידושים הבולטים ניתן למצוא:</p>
+                <ul class="list-disc list-inside my-4 space-y-2 text-lg">
+                    <li><strong>Polygel:</strong> חומר חדשני המשלב את חוזק האקריל עם הגמישות של הג'ל.</li>
+                    <li><strong>הדפסות דיגיטליות:</strong> מכשירים שמדפיסים עיצובים מורכבים ישירות על הציפורן.</li>
+                    <li><strong>בינה מלאכותית:</strong> תוכנות שממליצות על עיצוב לפי צבע עור, לבוש או מצב רוח.</li>
+                </ul>
+            </section>
+            
+            <section id="chapter10">
+                <h2 class="text-3xl">🎨 פרק 10: סטודיו לעיצוב אישי עם AI</h2>
+                <div class="gemini-feature-box">
+                    <h3 class="text-2xl font-bold mb-2 text-center">✨ מחפשת השראה?</h3>
+                    <p class="text-center mb-4">תארי סגנון, אירוע או אווירה, והבינה המלאכותית תיצור עבורך רעיונות לעיצוב ציפורניים באקריל.</p>
+                    <div class="flex flex-col items-center">
+                        <textarea id="designPrompt" class="w-full md:w-3/4 p-2 border rounded-md mb-4" rows="3" placeholder="לדוגמה: חופשה קיצית ביוון, מסיבת סילבסטר נוצצת, מראה טבעי לעבודה..."></textarea>
+                        <button id="generateDesign" class="bg-[var(--secondary-color)] text-white px-6 py-2 rounded-full font-semibold flex items-center">
+                            <span id="designBtnText">✨ צרי לי רעיון</span>
+                            <div id="designLoader" class="loader hidden ml-2"></div>
+                        </button>
+                    </div>
+                    <div id="designResult" class="mt-6 p-4 bg-white rounded-md shadow hidden"></div>
+                </div>
+            </section>
+
+            <section id="glossary">
+                <h2 class="text-3xl">📘 נספח: מילון מונחים</h2>
+                <table>
+                    <thead>
+                        <tr><th>מונח</th><th>הסבר</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>מונומר</td><td>נוזל שמתחיל את תהליך הבנייה.</td></tr>
+                        <tr><td>פולימר</td><td>אבקה שמתקשה יחד עם המונומר.</td></tr>
+                        <tr><td>פולימריזציה</td><td>תגובה כימית שיוצרת את האקריל.</td></tr>
+                        <tr><td>פריימר</td><td>חומר מקשר בין הציפורן הטבעית לחומר הבנייה.</td></tr>
+                        <tr><td>אפקס</td><td>הנקודה הגבוהה בציפורן – מקור החוזק.</td></tr>
+                        <tr><td>ליפטינג</td><td>התרוממות של החומר מהציפורן הטבעית.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="conclusion">
+                <h2 class="text-3xl">🎯 סיכום: המפתח לחוויה חיובית ובטוחה</h2>
+                <p class="text-lg leading-relaxed">בניית ציפורניים באקריל היא הרבה מעבר לטיפוח – זהו שילוב של מדע, אומנות ואחריות. היא יכולה להעניק ביטחון עצמי, תחושת ניקיון, אסתטיקה, ולעיתים אף ריפוי רגשי קטן. כדי להפיק את המרב מהתהליך, הביני את החומרים, הכירי את הסיכונים, בחרי מניקוריסטית מקצועית ואל תתפשרי על בריאות בשביל מחיר.</p>
+                <p class="text-xl font-bold text-center mt-6 text-[var(--primary-color)]">💬 לזכור תמיד: יופי מתחיל בידיים בריאות.</p>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('main section');
+            const navLinks = document.querySelectorAll('aside nav a');
+            const mobileNavToggle = document.getElementById('mobileNavToggle');
+            const sidebar = document.getElementById('sidebar');
+            const chatFab = document.getElementById('chatFab');
+            const chatModal = document.getElementById('chatModal');
+            const closeChat = document.getElementById('closeChat');
+            const sendChat = document.getElementById('sendChat');
+            const chatInput = document.getElementById('chatInput');
+            const chatHistory = document.getElementById('chatHistory');
+            const generateDesignBtn = document.getElementById('generateDesign');
+            const designPromptInput = document.getElementById('designPrompt');
+            const designResultDiv = document.getElementById('designResult');
+            const designBtnText = document.getElementById('designBtnText');
+            const designLoader = document.getElementById('designLoader');
+            
+            // Populate hidden div with content for chatbot context
+            const mainContent = document.getElementById('mainContent');
+            document.getElementById('content-container').innerText = mainContent.innerText;
+
+
+            // Mobile nav toggle
+            mobileNavToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+
+            // Active link highlighting on scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: '-30% 0px -70% 0px' });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+            // Close mobile nav on link click
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (sidebar.classList.contains('open')) {
+                        sidebar.classList.remove('open');
+                    }
+                });
+            });
+
+            // --- Gemini API Features ---
+
+            const callGemini = async (prompt) => {
+                const apiKey = ""; // Left empty as per instructions
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: prompt }]
+                    }]
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error("Unexpected API response structure:", result);
+                        return "לא הצלחתי לעבד את התשובה מהשרת.";
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    return "אופס, משהו השתבש. אנא נסי שוב מאוחר יותר.";
+                }
+            };
+            
+            // Design Idea Generator
+            generateDesignBtn.addEventListener('click', async () => {
+                const promptText = designPromptInput.value;
+                if (!promptText.trim()) {
+                    alert("אנא תארי את הסגנון הרצוי.");
+                    return;
+                }
+
+                designBtnText.classList.add('hidden');
+                designLoader.classList.remove('hidden');
+                generateDesignBtn.disabled = true;
+
+                const fullPrompt = `You are a creative nail design expert. Based on the following theme, generate 3 unique and detailed acrylic nail design ideas. The theme is: "${promptText}". Describe the colors, shapes, and any special elements for each design. Respond in Hebrew using Markdown for formatting (e.g., bold titles for each idea).`;
+                
+                const result = await callGemini(fullPrompt);
+
+                designResultDiv.innerHTML = result.replace(/\n/g, '<br>'); // Basic markdown support
+                designResultDiv.classList.remove('hidden');
+
+                designBtnText.classList.remove('hidden');
+                designLoader.classList.add('hidden');
+                generateDesignBtn.disabled = false;
+            });
+
+            // Chatbot Logic
+            chatFab.addEventListener('click', () => chatModal.classList.add('open'));
+            closeChat.addEventListener('click', () => chatModal.classList.remove('open'));
+            
+            const addMessageToChat = (text, sender) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message', sender);
+                messageDiv.textContent = text;
+                const parent = chatHistory.parentElement;
+                parent.insertBefore(messageDiv, parent.firstChild);
+            }
+
+            const handleChat = async () => {
+                const userQuery = chatInput.value;
+                if (!userQuery.trim()) return;
+
+                addMessageToChat(userQuery, 'user');
+                chatInput.value = '';
+                
+                // Add bot thinking indicator
+                const thinkingDiv = document.createElement('div');
+                thinkingDiv.classList.add('chat-message', 'bot');
+                thinkingDiv.innerHTML = '<div class="loader"></div>';
+                const parent = chatHistory.parentElement;
+                parent.insertBefore(thinkingDiv, parent.firstChild);
+
+                const guideContext = document.getElementById('content-container').innerText;
+                const fullPrompt = `You are an expert on acrylic nails. Answer the user's question based *only* on the information provided in the following guide. If the answer is not in the guide, say that you cannot find the information in the provided text. The user's question is: "${userQuery}". The guide text is: "${guideContext}". Respond in Hebrew.`;
+
+                const botResponse = await callGemini(fullPrompt);
+                
+                // Remove thinking indicator and add response
+                thinkingDiv.remove();
+                addMessageToChat(botResponse, 'bot');
+            };
+
+            sendChat.addEventListener('click', handleChat);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleChat();
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
